@@ -9,8 +9,8 @@
 #import "AppDelegate.h"
 #import <UserNotifications/UserNotifications.h>
 
-@interface AppDelegate ()
-
+@interface AppDelegate ()<UNUserNotificationCenterDelegate>
+@property (nonatomic, strong) UNUserNotificationCenter *center;
 @end
 
 @implementation AppDelegate
@@ -26,19 +26,96 @@
     
     if ([application respondsToSelector:@selector(isRegisteredForRemoteNotifications)]) {
         
-        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-        [center requestAuthorizationWithOptions:(UNAuthorizationOptionAlert + UNAuthorizationOptionSound + UNAuthorizationOptionBadge) completionHandler:^(BOOL granted, NSError * _Nullable error) {
+        _center = [UNUserNotificationCenter currentNotificationCenter];
+        _center.delegate = self;
+        [_center requestAuthorizationWithOptions:(UNAuthorizationOptionAlert + UNAuthorizationOptionSound + UNAuthorizationOptionBadge) completionHandler:^(BOOL granted, NSError * _Nullable error) {
             
             //enable or disable features based on authorization
-            
-            
+            //            if( !error )
+            //            {
+            //                [[UIApplication sharedApplication] registerForRemoteNotifications];  // required to get the app to do anything at all about push notifications
+            //                NSLog( @"Push registration success." );
+            //            }
+            if (granted) {
+                [self generateLocalNotification];
+            }
         }];
-        
     }
     application.applicationIconBadgeNumber = 0;
-    
 }
 
+- (void)generateLocalNotification {
+    
+    UNMutableNotificationContent *localNotification = [UNMutableNotificationContent new];
+    localNotification.title = [NSString localizedUserNotificationStringForKey:@"Time Down!" arguments:nil];
+    localNotification.userInfo = @{@"id" : @42};
+    localNotification.body = [NSString localizedUserNotificationStringForKey:@"Your notification is arrived" arguments:nil];
+    localNotification.sound = [UNNotificationSound defaultSound];
+    UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:60 repeats:YES];
+    
+    localNotification.badge = @([[UIApplication sharedApplication] applicationIconBadgeNumber] +1);
+    localNotification.userInfo = @{@"id" : @42};
+    //schedule :
+    UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:@"Time Down!" content:localNotification trigger:trigger];
+    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+    [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+        
+        if (!error) {
+            NSLog(@"SHOW NOTIFICATION");
+        }
+    }];
+}
+
+
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void (^)())completionHandler {
+    
+    //this happens when the user taps on the notification outside the app
+    NSLog(@"THE NOTIFICATION ID %@", response.notification.request.content.userInfo[@"id"]);
+
+    [self takeActionWithLocalNotification:response.notification];
+    completionHandler();
+}
+
+
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
+    
+    NSLog(@"THE NOTIFICATION ID %@", notification.request.content.userInfo[@"id"]);
+    
+        if ([UIApplication sharedApplication].applicationState == UIApplicationStateActive) {
+            
+            UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"This is an alert" message:@"You recieve a notification what do you want to do?" preferredStyle:UIAlertControllerStyleAlert];
+            UIAlertAction *ignore = [UIAlertAction actionWithTitle:@"ignore" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                NSLog(@"ignore");
+            }];
+            UIAlertAction *view = [UIAlertAction actionWithTitle:@"view" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                
+                [self takeActionWithLocalNotification:notification];
+            }];
+            
+            [alertController addAction:ignore];
+            [alertController addAction:view];
+
+            [self.window.rootViewController presentViewController:alertController animated:YES completion:^{
+            }];
+        }
+}
+
+
+- (void)takeActionWithLocalNotification:(UNNotification *)localNotification {
+    
+    NSString *notifID = localNotification.request.content.userInfo[@"id"];
+    
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"alert" message:[NSString stringWithFormat:@"%@ and the ID is %@", localNotification.request.content.body,notifID] preferredStyle:UIAlertControllerStyleAlert];
+    UIAlertAction *ok = [UIAlertAction actionWithTitle:@"ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        NSLog(@"ok");
+    }];
+    
+    [alertController addAction:ok];
+    [self.window.rootViewController presentViewController:alertController animated:YES completion:^{
+        
+    }];
+    
+}
 
 
 - (void)applicationWillResignActive:(UIApplication *)application {

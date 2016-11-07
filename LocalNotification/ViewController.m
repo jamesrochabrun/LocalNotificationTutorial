@@ -10,9 +10,10 @@
 #import <UserNotifications/UserNotifications.h>
 
 
-@interface ViewController ()
+@interface ViewController ()<UNUserNotificationCenterDelegate>
 @property (nonatomic, strong) UNMutableNotificationContent *localNotification;
 @property (nonatomic, strong) UIButton *button;
+@property (nonatomic, strong) UNUserNotificationCenter *center;
 
 @end
 
@@ -27,6 +28,7 @@
     [_button setTitle:@"BUTTON" forState:UIControlStateNormal];
     [_button addTarget:self action:@selector(performAction:) forControlEvents:UIControlEventTouchUpInside];
     [self.view addSubview:_button];
+    
 
 }
 
@@ -41,8 +43,9 @@
     _localNotification.badge = @([[UIApplication sharedApplication] applicationIconBadgeNumber] +1);
     //schedule :
     UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:@"Time Down!" content:_localNotification trigger:trigger];
-    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-    [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+    _center = [UNUserNotificationCenter currentNotificationCenter];
+    _center.delegate = self;
+    [_center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
        
         if (!error) {
             NSLog(@"add notification");
@@ -62,10 +65,15 @@
     _button.frame = frame;
 }
 
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void (^)())completionHandler {
+    
+    
+    NSLog(@"THE DIRECEIVE %@", response);
+}
 
-- (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
+    
+    NSLog(@"THE WILLPRESENT %@", notification);
 }
 
 
