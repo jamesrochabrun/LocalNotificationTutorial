@@ -38,6 +38,8 @@
             //            }
             if (granted) {
                 [self generateLocalNotification];
+            } else {
+                NSLog(@"NOTIFICATIONS ARE DESABLED");
             }
         }];
     }
